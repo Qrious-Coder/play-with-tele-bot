@@ -1,6 +1,7 @@
 require("dotenv").config();
-const TelegramBot = require('node-telegram-bot-api');
-const axios = require('axios');
+const keep_alive = require("./keep_alive.js");
+const TelegramBot = require("node-telegram-bot-api");
+const axios = require("axios");
 
 // Retrieve the token
 const token = process.env.TL_BOT_TOKEN;
@@ -36,24 +37,26 @@ const greetings = ["hi", "hello", "你好", "chào", "play", "music", "menu"];
 function setUserLanguage(userId, languageCode) {
   let language;
   switch (languageCode) {
-    case 'english':
-      language = 'english';
+    case "english":
+      language = "english";
       break;
-    case 'chinese':
-      language = 'chinese';
+    case "chinese":
+      language = "chinese";
       break;
-    case 'vietnamese':
-      language = 'vietnamese';
+    case "vietnamese":
+      language = "vietnamese";
       break;
     default:
-      language = 'english';
+      language = "english";
   }
   userPreferences[userId] = { language: language, state: null };
   // sendSearchOptions(userId);
 }
 function getUserLanguage(userId) {
   const language = userPreferences[userId]?.language;
-  return ['english', 'chinese', 'vietnamese'].includes(language) ? language : 'english';
+  return ["english", "chinese", "vietnamese"].includes(language)
+    ? language
+    : "english";
 }
 
 function getResponse(userId, key) {
@@ -68,7 +71,7 @@ const responses = {
     titlePrompt: "What's the title of the song?",
     artistPrompt: "Who's the artist?",
     moodPrompt: "Well, how do you feel?",
-    unknownCommand: "Sorry, I didn't understand that."
+    unknownCommand: "Sorry, I didn't understand that.",
   },
   chinese: {
     searchOptions: "告诉Pasteur你想如何搜索音乐呢:",
@@ -76,7 +79,7 @@ const responses = {
     titlePrompt: "歌曲的标题是什么？",
     artistPrompt: "艺术家是谁？",
     moodPrompt: "您现在的心情如何？",
-    unknownCommand: "不好意思 不太明白你要什么呢？"
+    unknownCommand: "不好意思 不太明白你要什么呢？",
   },
   vietnamese: {
     searchOptions: "Cùng Pasteur tìm nhạc theo cách của bạn:",
@@ -84,26 +87,26 @@ const responses = {
     titlePrompt: "Mời chọn tên bài hát?",
     artistPrompt: "MỜi chọn ca sỹ?",
     moodPrompt: "Bạn cảm thấy thế nào?",
-    unknownCommand: "Xin lỗi, bạn cần tìm kiếm bài hát nào."
-  }
+    unknownCommand: "Xin lỗi, bạn cần tìm kiếm bài hát nào.",
+  },
 };
 
 function sendSearchOptions(chatId) {
-  const searchOptionsMessage = getResponse(chatId, 'searchOptions');
+  const searchOptionsMessage = getResponse(chatId, "searchOptions");
   const options = {
     reply_markup: JSON.stringify({
       inline_keyboard: [
-        [{ text: 'Search by genre', callback_data: 'search_by_genre' }],
-        [{ text: 'Search by title', callback_data: 'search_by_title' }],
-        [{ text: 'Search by artist', callback_data: 'search_by_artist' }],
-        [{ text: 'Search by mood', callback_data: 'search_by_mood' }]
-      ]
-    })
+        [{ text: "Search by genre", callback_data: "search_by_genre" }],
+        [{ text: "Search by title", callback_data: "search_by_title" }],
+        [{ text: "Search by artist", callback_data: "search_by_artist" }],
+        [{ text: "Search by mood", callback_data: "search_by_mood" }],
+      ],
+    }),
   };
   bot.sendMessage(chatId, searchOptionsMessage, options);
 }
 
-bot.on('callback_query', (callbackQuery) => {
+bot.on("callback_query", (callbackQuery) => {
   const chatId = callbackQuery.message.chat.id;
   const data = callbackQuery.data;
 
@@ -111,8 +114,8 @@ bot.on('callback_query', (callbackQuery) => {
   userPreferences[chatId] = { ...userPreferences[chatId], state: data };
 
   // Handle language selection from inline keyboard
-  if (data.startsWith('language_')) {
-    const selectedLanguage = data.split('_')[1];
+  if (data.startsWith("language_")) {
+    const selectedLanguage = data.split("_")[1];
     setUserLanguage(chatId, selectedLanguage);
     sendSearchOptions(chatId);
     return;
@@ -120,40 +123,39 @@ bot.on('callback_query', (callbackQuery) => {
 
   // Handle the callback data
   switch (data) {
-    case 'search_by_genre':
-      bot.sendMessage(chatId, getResponse(chatId, 'genrePrompt'));
+    case "search_by_genre":
+      bot.sendMessage(chatId, getResponse(chatId, "genrePrompt"));
       break;
-    case 'search_by_title':
-      bot.sendMessage(chatId, getResponse(chatId, 'titlePrompt'));
+    case "search_by_title":
+      bot.sendMessage(chatId, getResponse(chatId, "titlePrompt"));
       break;
-    case 'search_by_artist':
-      bot.sendMessage(chatId, getResponse(chatId, 'artistPrompt'));
+    case "search_by_artist":
+      bot.sendMessage(chatId, getResponse(chatId, "artistPrompt"));
       break;
-    case 'search_by_mood':
-      bot.sendMessage(chatId, getResponse(chatId, 'moodPrompt'));
+    case "search_by_mood":
+      bot.sendMessage(chatId, getResponse(chatId, "moodPrompt"));
       break;
     default:
-      bot.sendMessage(chatId, getResponse(chatId, 'unknownCommand'));
+      bot.sendMessage(chatId, getResponse(chatId, "unknownCommand"));
   }
 });
-
 
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
   initiateInteraction(chatId);
 });
 
-bot.on('message', (msg) => {
+bot.on("message", (msg) => {
   const chatId = msg.chat.id;
 
-  if (msg.text.startsWith('/')) {
+  if (msg.text.startsWith("/")) {
     return;
   }
 
   // Skip if it's a response to a search option
   if (userPreferences[chatId]?.state) {
     const query = msg.text.trim();
-    searchYouTube(userPreferences[chatId].state + ' ' + query, chatId);
+    searchYouTube(userPreferences[chatId].state + " " + query, chatId);
     userPreferences[chatId].state = null;
     return;
   }
@@ -162,29 +164,35 @@ bot.on('message', (msg) => {
   if (greetings.includes(msg.text.toLowerCase())) {
     initiateInteraction(chatId);
   }
-
 });
 
 function searchYouTube(query, chatId) {
   const musicCategoryId = "10";
   const regionCode = "IN";
 
-  const youtubeApiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&regionCode=${regionCode}&type=video&videoCategoryId=${musicCategoryId}&q=${encodeURIComponent(query)}&maxResults=5&key=${youtubeApiKey}`;
+  const youtubeApiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&regionCode=${regionCode}&type=video&videoCategoryId=${musicCategoryId}&q=${encodeURIComponent(
+    query,
+  )}&maxResults=5&key=${youtubeApiKey}`;
 
-  axios.get(youtubeApiUrl)
-    .then(response => {
+  axios
+    .get(youtubeApiUrl)
+    .then((response) => {
       if (response.data.items.length > 0) {
         let message = "Here is your list:\n";
         response.data.items.forEach((item, index) => {
-          message += `${index + 1}. ${item.snippet.title}, ${item.snippet.channelTitle}. [YouTube Link](https://www.youtube.com/watch?v=${item.id.videoId})\n`;
+          message += `${index + 1}. ${item.snippet.title}, ${
+            item.snippet.channelTitle
+          }. [YouTube Link](https://www.youtube.com/watch?v=${
+            item.id.videoId
+          })\n`;
         });
-        bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+        bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
       } else {
-        bot.sendMessage(chatId, 'No music videos found.');
+        bot.sendMessage(chatId, "No music videos found.");
       }
     })
-    .catch(error => {
-      console.error('Error fetching YouTube data:', error);
-      bot.sendMessage(chatId, 'Error searching YouTube.');
+    .catch((error) => {
+      console.error("Error fetching YouTube data:", error);
+      bot.sendMessage(chatId, "Error searching YouTube.");
     });
 }
